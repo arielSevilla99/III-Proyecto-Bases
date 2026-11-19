@@ -956,7 +956,9 @@ GRANT EXECUTE ON FUNCTION fn_puede_ver_almacen(INT) TO operativo;
 -- Confirma todo lo anterior (esquema, datos, roles, RLS, SP y permisos).
 -- Necesario porque pgAdmin ejecuta el script como una sola transaccion y los
 -- ROLLBACK de las pruebas 3 y 6 deben deshacer solo su propia prueba.
+SET client_min_messages = error;   -- silencia el aviso "no hay una transaccion en curso"
 COMMIT;
+SET client_min_messages = notice;
 
 -- PRUEBA 1: control total sobre estructura, usuarios y privilegios
 SET ROLE admin_test;
@@ -996,7 +998,9 @@ BEGIN
 END $$;
 
 -- PRUEBA 3: venta que supera la existencia -> excepcion controlada y ROLLBACK
+SET client_min_messages = error;
 COMMIT;
+SET client_min_messages = notice;
 SET ROLE admin_test;
 BEGIN;
 DO $$
@@ -1018,6 +1022,7 @@ BEGIN
     RAISE NOTICE '    Stock de ELE-102 en almacén 1 -> antes: % | después: % (inventario intacto)', v_antes, v_despues;
 END $$;
 ROLLBACK;
+SET client_min_messages = notice;   -- el ROLLBACK deshace el SET anterior, se repone aqui
 
 -- PRUEBA 4: reporte gerencial de valoracion (almacen 1, margen de alerta 10%)
 SET ROLE admin_test;
@@ -1037,7 +1042,9 @@ END $$;
 -- SELECT * FROM sp_reporte_valoracion_reabastecimiento(1, 10.0);
 
 -- PRUEBA 5: transferencia de 5 unidades (ELE-101) del almacen 1 al almacen 2 -> COMMIT
+SET client_min_messages = error;
 COMMIT;
+SET client_min_messages = notice;
 SET ROLE admin_test;
 BEGIN;
 DO $$ BEGIN RAISE NOTICE '>>> PRUEBA 5 (db_admin): transferir 5 unidades de ELE-101 del almacén 1 al almacén 2 (COMMIT).'; END $$;
@@ -1063,7 +1070,9 @@ BEGIN
 END $$;
 
 -- PRUEBA 6: transferencia de 5000 unidades (supera la existencia) -> ROLLBACK
+SET client_min_messages = error;
 COMMIT;
+SET client_min_messages = notice;
 SET ROLE admin_test;
 BEGIN;
 DO $$
@@ -1088,6 +1097,7 @@ BEGIN
     RAISE NOTICE '    Almacén 2 -> antes: % | después: % (sin unidades perdidas en tránsito)', v_destino_a, v_destino_d;
 END $$;
 ROLLBACK;
+SET client_min_messages = notice;   -- el ROLLBACK deshace el SET anterior, se repone aqui
 
 -- ---------------------------------------------------------------------------
 -- ROL inventory_manager (pruebas 7 a 10)
@@ -1137,7 +1147,9 @@ BEGIN
 END $$;
 
 -- PRUEBA 9: venta valida de 2 unidades en su propia sucursal -> COMMIT
+SET client_min_messages = error;
 COMMIT;
+SET client_min_messages = notice;
 SET ROLE gestor_norte;
 BEGIN;
 DO $$ BEGIN RAISE NOTICE '>>> PRUEBA 9 (inventory_manager): venta de 2 unidades de ACC-301 en el almacén 2 (COMMIT).'; END $$;
@@ -1263,6 +1275,8 @@ BEGIN
 END $$;
 
 -- Volver al usuario original
+SET client_min_messages = error;
 COMMIT;
+SET client_min_messages = notice;
 RESET ROLE;
 DO $$ BEGIN RAISE NOTICE '=== FIN DE LAS PRUEBAS: se ejecutaron las 15 pruebas. ==='; END $$;
